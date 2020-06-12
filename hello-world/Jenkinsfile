@@ -14,31 +14,35 @@ pipeline {
         DEV_PROJECT = "fharo-redhat-com-personal-dev"
         STAGE_PROJECT = "fharo-redhat-com-personal-stage"
 
-        APP_NAME = "angular-hello-world"
-        PATH_TO_BINARY_DIR = "."
+        APP_NAME = "hello-world"
+        PATH_TO_BINARY_DIR = "./${APP_NAME}"
     }
 
     stages {
         stage('Installing Dependencies'){
           steps {
+            sh 'cd ${APP_NAME}'
             sh 'npm install'
           }
         }
 
         stage('Run Unit Tests') {
             steps {
+                sh 'cd ${APP_NAME}'
                 sh 'npm run test-headless'
             }
         }
 
         stage('Static Code Analysis') {
             steps {
+                sh 'cd ${APP_NAME}'
                 sh 'npm run lint'
             }
         }
 
         stage('Compile & Build Dist') {
             steps {
+                sh 'cd ${APP_NAME}'
                 sh 'npm run build'
             }
         }
