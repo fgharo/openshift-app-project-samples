@@ -1,0 +1,116 @@
+pipeline {
+    options {
+        // set a timeout of 60 minutes for this pipeline
+        timeout(time: 60, unit: 'MINUTES')
+    }
+
+    agent {
+      node {
+          		label 'nodejs10'
+    	}
+    }
+
+    environment {
+        DEV_PROJECT = "fharo-redhat-com-personal-dev"
+        STAGE_PROJECT = "fharo-redhat-com-personal-stage"
+
+        APP_NAME = "angular-hello-world"
+        PATH_TO_BINARY_DIR = "."
+    }
+
+    stages {
+        stage('Installing Dependencies'){
+          steps {
+            sh 'npm install'
+          }
+        }
+
+        stage('Run Unit Tests') {
+            steps {
+                sh 'npm run test-headless'
+            }
+        }
+
+        stage('Static Code Analysis') {
+            steps {
+                sh 'npm run lint'
+            }
+        }
+
+        stage('Compile & Build Dist') {
+            steps {
+                sh 'npm run build'
+            }
+        }
+
+        stage('Launch app in DEV') {
+            steps {
+                sh '''
+                    oc project ${DEV_PROJECT}
+                    oc set triggers dc/${APP_NAME} --manual
+      			        oc start-build bc/${APP_NAME} --from-dir=${PATH_TO_BINARY_DIR} --wait=true --follow=true
+      			        oc rollout latest dc/${APP_NAME}
+                   '''
+            }
+        }
+
+        stage('Wait for deployment in DEV env') {
+      	    steps {
+      		      waitOnRolloutCompletion(env.DEV_PROJECT, env.APP_NAME)
+      	    }
+      	}
+/*
+If there was a staging environment ...
+        stage('Promote to Staging Env') {
+            steps {
+                timeout(time: 60, unit: 'MINUTES') {
+                    input message: "Promote to Staging?"
+                }
+                sh '''
+                    oc project ${STAGE_PROJECT}
+                	  oc set triggers dc/${APP_NAME} --manual
+                    oc tag ${DEV_PROJECT}/${APP_NAME}:latest ${STAGE_PROJECT}/${APP_NAME}:stage
+                   '''
+            }
+        }
+
+        stage('Deploy to Staging Env') {
+            steps {
+                echo '### Cleaning existing resources in Staging ###'
+                sh '''
+                        oc rollout latest dc/${APP_NAME} -n ${STAGE_PROJECT}
+                        sleep 5
+                   '''
+	    }
+        }
+
+        stage('Wait for deployment in Staging') {
+            steps {
+          		waitOnRolloutCompletion(env.STAGE_PROJECT, env.APP_NAME)
+
+          		script {
+          			sh "oc get route ${APP_NAME} -n ${STAGE_PROJECT} -o jsonpath='{ .spec.host }' --loglevel=4 > routehost"
+          			routeHost = readFile('routehost').trim()
+          			echo "Deployment to Staging env is complete. Access the API endpoint at the URL http://${routeHost}/movies."
+          		}
+            }
+        }
+*/
+    }
+}
+
+def waitOnRolloutCompletion(project, app){
+	 def dc_version = sh(returnStdout: true, script: "oc get dc ${app} --template={{.status.latestVersion}} -n ${project}").trim()
+	 def replication_controller = app + "-" + dc_version
+
+   def currentNumOfReplicas = sh(returnStdout: true, script: "oc get rc ${replication_controller} --template={{.status.readyReplicas}} -n ${project}").trim()
+	 def expectedNumOfReplicas = sh(returnStdout: true, script: "oc get rc ${replication_controller} --template={{.status.replicas}} -n ${project}").trim()
+
+	 echo "Waiting for ReplicationController ${replication_controller} to replicate expected number of replicas."
+	 while (currentNumOfReplicas != expectedNumOfReplicas){
+            sleep 5
+            currentNumOfReplicas = sh(returnStdout: true, script: "oc get rc ${replication_controller} --template={{.status.readyReplicas}} -n ${project}").trim()
+	          expectedNumOfReplicas = sh(returnStdout: true, script: "oc get rc ${replication_controller} --template={{.status.replicas}} -n ${project}").trim()
+	          echo "${currentNumOfReplicas} vs ${expectedNumOfReplicas}"
+	 }
+}
