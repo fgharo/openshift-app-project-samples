@@ -21,29 +21,33 @@ pipeline {
     stages {
         stage('Installing Dependencies'){
           steps {
-            sh 'cd ${APP_NAME}'
-            sh 'npm install'
+            dir(env.APP_NAME){
+              sh 'npm install'
+            }
           }
         }
 
         stage('Run Unit Tests') {
             steps {
-                sh 'cd ${APP_NAME}'
-                sh 'npm run test-headless'
+                dir(env.APP_NAME){
+                  sh 'npm run test-headless'
+                }
             }
         }
 
         stage('Static Code Analysis') {
             steps {
-                sh 'cd ${APP_NAME}'
-                sh 'npm run lint'
+                dir(env.APP_NAME){
+                  sh 'npm run lint'
+                }
             }
         }
 
         stage('Compile & Build Dist') {
             steps {
-                sh 'cd ${APP_NAME}'
-                sh 'npm run build'
+                dir(env.APP_NAME){
+                  sh 'npm run build'
+                }
             }
         }
 

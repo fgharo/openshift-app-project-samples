@@ -48,10 +48,10 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
 0. Be in project you want to create app resources in.
 `oc project fharo-redhat-com-personal-dev`
 1. Build actual generic BuildConfig ocp object to work with binary build.
-`oc new-build  --name=angular-hello-world --binary=true`
+`oc new-build  --name=hello-world --binary=true`
 2. Start execution of BuildConfig object with this directory (which uses Dockerfile build container image for binary input) to produce imagestream for our app.
-`oc start-build bc/angular-hello-world --from-dir="." --wait=true --follow=true`
+`oc start-build bc/hello-world --from-dir="." --wait=true --follow=true`
 3. Create/Start a DeploymentConfig ocp object with the previous image stream as the input/container image.
-`oc new-app angular-hello-world:latest`
+`oc new-app hello-world:latest`
 4. Expose the service created.
-`oc expose svc angular-hello-world`
+`oc expose svc hello-world`
