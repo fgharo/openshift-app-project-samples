@@ -6,13 +6,13 @@ pipeline {
 
     agent {
       node {
-          		label 'nodejs10'
+          		label 'nodejs'
     	}
     }
 
     environment {
-        DEV_PROJECT = "fharo-redhat-com-personal-dev"
-        STAGE_PROJECT = "fharo-redhat-com-personal-stage"
+        DEV_PROJECT = "personal-dev"
+        STAGE_PROJECT = "personal-stage"
 
         APP_NAME = "hello-world"
         PATH_TO_BINARY_DIR = "./${APP_NAME}"
@@ -68,8 +68,7 @@ pipeline {
       		      waitOnRolloutCompletion(env.DEV_PROJECT, env.APP_NAME)
       	    }
       	}
-/*
-If there was a staging environment ...
+
         stage('Promote to Staging Env') {
             steps {
                 timeout(time: 60, unit: 'MINUTES') {
@@ -104,7 +103,6 @@ If there was a staging environment ...
           		}
             }
         }
-*/
     }
 }
 
