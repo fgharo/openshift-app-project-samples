@@ -13,7 +13,7 @@ pipeline {
     stages {
         stage('Loading Environment Vars'){
           steps{
-            dir(env.APP_NAME){
+            dir('hello-world'){
               load "Jenkinsfile-properties.groovy"
             }
           }
