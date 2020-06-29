@@ -11,45 +11,17 @@ pipeline {
     }
 
     environment {
-        def props = readProperties file: 'Jenkinsfile.properties'
-        DEV_PROJECT = "personal-dev"
-        STAGE_PROJECT = "personal-stage"
-        APP_NAME = "hello-world"
-        PATH_TO_BINARY_DIR = "./${APP_NAME}"
+      def props = readProperties file: 'Jenkinsfile.properties'
+      APP_NAME = props['APP_NAME']
+      DEV_PROJECT = props['DEV_PROJECT']
+      STAGE_PROJECT = props['STAGE_PROJECT']
     }
 
     stages {
-        stage('Installing Dependencies'){
+        stage('Running CI'){
           steps {
-            dir(env.APP_NAME){
-              sh 'npm install'
-            }
+            build 'jenkins-hello-world-pipeline'
           }
-        }
-
-        stage('Run Unit Tests') {
-            steps {
-                dir(env.APP_NAME){
-                // test hanging.
-                //  sh 'npm run test-headless'
-                }
-            }
-        }
-
-        stage('Static Code Analysis') {
-            steps {
-                dir(env.APP_NAME){
-                  sh 'npm run lint'
-                }
-            }
-        }
-
-        stage('Compile & Build Dist') {
-            steps {
-                dir(env.APP_NAME){
-                  sh 'npm run build'
-                }
-            }
         }
 
         stage('Launch app in DEV') {
@@ -57,7 +29,6 @@ pipeline {
                 sh '''
                     oc project ${DEV_PROJECT}
                     oc set triggers dc/${APP_NAME} --manual
-      			        oc start-build bc/${APP_NAME} --from-dir=${PATH_TO_BINARY_DIR} --wait=true --follow=true
       			        oc rollout latest dc/${APP_NAME}
                    '''
             }
@@ -68,8 +39,8 @@ pipeline {
       		      waitOnRolloutCompletion(env.DEV_PROJECT, env.APP_NAME)
 
                 sh '''
-                        echo "Deployment to Dev env is complete. Access the API endpoint at the URL"
-                        oc get route ${APP_NAME} -n ${DEV_PROJECT} -o jsonpath='{ .spec.host }'
+                    echo "Deployment to Dev env is complete. Access the API endpoint at the URL"
+                    oc get route ${APP_NAME} -n ${DEV_PROJECT} -o jsonpath='{ .spec.host }'
                    '''
       	    }
       	}
