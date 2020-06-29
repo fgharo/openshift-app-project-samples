@@ -46,7 +46,7 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
 
 ### Openshift application binary build/deployment
 0. Be in project you want to create app resources in.
-`oc project fharo-redhat-com-personal-dev`
+`oc project personal-dev`
 1. Build actual generic BuildConfig ocp object to work with binary build.
 `oc new-build  --name=hello-world --binary=true`
 2. Start execution of BuildConfig object with this directory (which uses Dockerfile build container image for binary input) to produce imagestream for our app.
@@ -55,3 +55,61 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
 `oc new-app hello-world:latest`
 4. Expose the service created.
 `oc expose svc hello-world`
+5. To simulate a deployment to a staging environment create the appropriate namespace.
+`oc project personal-stage`
+6. Promote container image from dev to stage:
+`oc tag personal-dev/hello-world:latest personal-stage/hello-world:stage`
+7. Deploy hello-world imagestream with tag stage to personal-stage environment.
+`oc new-app hello-world:stage`
+8. Expose route.
+`oc expose svc hello-world`
+
+
+## CI/CD Jenkins Monolithic pipeline with Openshift (One time setup)
+### Prereqs
+0. Make sure application has a containerization strategy. For this Angular app we have placed a Dockerfile
+to create the container image with our application code. To repeat/automate a Jenkinsfile (One that is simple
+and easy to read) make sure the Openshift resource objects are already out in the appropriate openshift namespaces
+personal-dev and personal-stage by following the instructions for 'Openshift application binary build/deployment' section
+above.
+
+1. Make sure Jenkins instance is setup in openshift:
+```
+oc new-project jenkins
+oc new-app jenkins-persistent -p MEMORY_LIMIT=2Gi # Might want jenkins-ephemeral if you are just testing this out.
+```
+
+2. Make sure there is a Jenkins agent that we can use that has the build tools to build this project. After running below command you should
+see some output that contains the registry we will need to put in the Container Template with name nodejs (One of the Kubernetes Pod template
+that is preconfigured with openshift jenkins-persistent template from above) in Jenkins configuration. Make sure to add this registry uri
+by going to 'Jenkins > Manage Jenkins > Configure System > Scroll down to Images section on the webpage > Kubernetes Pod Template with name of
+nodejs > Edit Docker image section under jnlp Container Template'.
+```
+oc import-image quay.io/openshift/origin-jenkins-agent-nodejs:4.7.0 --confirm --from quay.io/openshift/origin-jenkins-agent-nodejs -n jenkins
+...
+... image-registry.openshift-image-registry.svc:5000/jenkins/origin-jenkins-agent-nodejs:4.7.0
+...
+```
+
+3. If we want to kickoff pipeline from openshift and have Jenkins know about it make sure that the BuildConfig's are synced between Jenkins and
+Openshift by putting openshift application namespace/project name in 'Jenkins > Manage Jenkins > Configure System' under
+OpenShift Jenkins Sync option in the Namespace field. For example, with this project I would append ' personal-dev personal-stage' to that field.
+
+4. Jenkins service account (made when Jenkins was first created) must have edit role to those projects:
+`oc policy add-role-to-user edit system:serviceaccount:jenkins:jenkins -n personal-dev`
+`oc policy add-role-to-user edit system:serviceaccount:jenkins:jenkins -n personal-stage`
+
+5. Now create a pipeline BuildConfig via oc:
+```
+oc new-build https://github.com/fgharo/openshift-app-project-samples.git#angular-jenkins-monolithic-cicd-pipeline \
+--context-dir=hello-world  \
+--strategy="pipeline" \
+--name=hello-world-pipeline \
+-n jenkins # Could place this in personal-dev namespace too.
+```
+### Repeatable Jenkins CI/CD pipeline.
+
+Step number 5. above already started a new build. From here on out we have a repeatable/semi-automated process in the Jenkinsfile script with the push
+of a button or a single command. So just run the below command or trigger the job from within Jenkins. This will build code, build container image, deploy pod/container to
+personal-dev, promote to personal-stage, and finally deploy to personal-stage.
+`oc start-build hello-world-pipeline`
