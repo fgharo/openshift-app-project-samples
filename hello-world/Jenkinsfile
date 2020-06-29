@@ -66,6 +66,11 @@ pipeline {
         stage('Wait for deployment in DEV env') {
       	    steps {
       		      waitOnRolloutCompletion(env.DEV_PROJECT, env.APP_NAME)
+
+                sh '''
+                        echo "Deployment to Dev env is complete. Access the API endpoint at the URL"
+                        oc get route ${APP_NAME} -n ${DEV_PROJECT} -o jsonpath='{ .spec.host }
+                   '''
       	    }
       	}
 
@@ -96,11 +101,10 @@ pipeline {
             steps {
           		waitOnRolloutCompletion(env.STAGE_PROJECT, env.APP_NAME)
 
-          		script {
-          			sh "oc get route ${APP_NAME} -n ${STAGE_PROJECT} -o jsonpath='{ .spec.host }' --loglevel=4 > routehost"
-          			routeHost = readFile('routehost').trim()
-          			echo "Deployment to Staging env is complete. Access the API endpoint at the URL http://${routeHost}/movies."
-          		}
+              sh '''
+                      echo "Deployment to Staging env is complete. Access the API endpoint at the URL"
+                      oc get route ${APP_NAME} -n ${STAGE_PROJECT} -o jsonpath='{ .spec.host }
+                 '''
             }
         }
     }
