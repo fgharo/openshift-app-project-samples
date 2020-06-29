@@ -12,7 +12,10 @@ pipeline {
 
     stages {
         stage('Loading Environment Vars'){
+          steps{
             load "Jenkinsfile-properties.groovy"
+          }
+
         }
 
         stage('Installing Dependencies'){
