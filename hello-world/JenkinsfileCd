@@ -4,20 +4,17 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
     }
 
-    agent {
-      node {
-          label 'nodejs'
-    	}
-    }
-
-    environment {
-      def props = readProperties file: 'Jenkinsfile.properties'
-      APP_NAME = props['APP_NAME']
-      DEV_PROJECT = props['DEV_PROJECT']
-      STAGE_PROJECT = props['STAGE_PROJECT']
-    }
+    agent none
 
     stages {
+        stage('Loading Environment Vars'){
+          steps{
+            dir('hello-world'){
+              load "Jenkinsfile-properties.groovy"
+            }
+          }
+        }
+
         stage('Running CI'){
           steps {
             build 'jenkins-hello-world-pipeline'
