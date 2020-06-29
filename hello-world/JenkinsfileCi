@@ -11,10 +11,12 @@ pipeline {
     }
 
     environment {
-      def props = readProperties file: 'Jenkinsfile.properties'
-      APP_NAME = props['APP_NAME']
-      DEV_PROJECT = props['DEV_PROJECT']
-      PATH_TO_BINARY_DIR = props['PATH_TO_BINARY_DIR']
+      script {
+        def props = readProperties file: 'Jenkinsfile.properties'
+        APP_NAME = props['APP_NAME']
+        DEV_PROJECT = props['DEV_PROJECT']
+        PATH_TO_BINARY_DIR = props['PATH_TO_BINARY_DIR']
+      }
     }
 
     stages {
