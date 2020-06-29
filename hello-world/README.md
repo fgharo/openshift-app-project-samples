@@ -96,7 +96,9 @@ Openshift by putting openshift application namespace/project name in 'Jenkins > 
 OpenShift Jenkins Sync option in the Namespace field. For example, with this project I would append ' personal-dev personal-stage' to that field.
 
 4. Jenkins service account (made when Jenkins was first created) must have edit role to those projects:
+
 `oc policy add-role-to-user edit system:serviceaccount:jenkins:jenkins -n personal-dev`
+
 `oc policy add-role-to-user edit system:serviceaccount:jenkins:jenkins -n personal-stage`
 
 5. Now create a pipeline BuildConfig via oc:
