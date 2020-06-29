@@ -10,11 +10,11 @@ pipeline {
     	}
     }
 
-    environment {
-      load "Jenkinsfile-properties.groovy"
-    }
-
     stages {
+        stage('Loading Environment Vars'){
+            load "Jenkinsfile-properties.groovy"
+        }
+
         stage('Installing Dependencies'){
           steps {
             dir(env.APP_NAME){
