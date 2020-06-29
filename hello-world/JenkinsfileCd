@@ -17,7 +17,7 @@ pipeline {
 
         stage('Running CI'){
           steps {
-            build 'jenkins-hello-world-pipeline'
+            build 'jenkins-hello-world-ci-pipeline'
           }
         }
 
