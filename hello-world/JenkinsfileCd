@@ -24,7 +24,7 @@ pipeline {
             */
             sh '''
                 oc project ${DEV_PROJECT}
-                oc start-build hello-world-ci-pipeline --follow=true
+                oc start-build hello-world-ci-pipeline --wait=true --follow=true
                '''
           }
         }
