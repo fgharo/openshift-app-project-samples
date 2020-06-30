@@ -17,7 +17,15 @@ pipeline {
 
         stage('Running CI'){
           steps {
+            /*
+            Triggering pipelines from other pipelines is not supported in Openshift Jenkins v 2.204.2
             build '/personal-dev/personal-dev-hello-world-ci-pipeline'
+            Workaround: Use the oc to follow a manual trigger of the ci pipeline.
+            */
+            sh '''
+                oc project ${DEV_PROJECT}
+                oc start-build hello-world-ci-pipeline --follow=true
+               '''
           }
         }
 
