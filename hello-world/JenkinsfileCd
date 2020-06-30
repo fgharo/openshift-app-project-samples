@@ -17,7 +17,7 @@ pipeline {
 
         stage('Running CI'){
           steps {
-            build '../personal-dev/hello-world-ci-pipeline'
+            build '../personal-dev-hello-world-ci-pipeline'
           }
         }
 
