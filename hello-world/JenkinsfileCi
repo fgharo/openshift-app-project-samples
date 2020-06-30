@@ -6,14 +6,18 @@ pipeline {
 
     agent {
       node {
-          		label 'nodejs'
+          label 'nodejs'
     	}
+    }
+
+    environment {
+      WORKING_DIRECTORY = 'hello-world'
     }
 
     stages {
         stage('Loading Environment Vars'){
           steps{
-            dir('hello-world'){
+            dir(env.WORKING_DIRECTORY){
               load "Jenkinsfile-properties.groovy"
             }
           }
@@ -22,7 +26,7 @@ pipeline {
 
         stage('Installing Dependencies'){
           steps {
-            dir(env.APP_NAME){
+            dir(env.WORKING_DIRECTORY){
               sh 'npm install'
             }
           }
@@ -30,7 +34,7 @@ pipeline {
 
         stage('Run Unit Tests') {
             steps {
-                dir(env.APP_NAME){
+                dir(env.WORKING_DIRECTORY){
                 // test hanging.
                 //  sh 'npm run test-headless'
                 }
@@ -39,7 +43,7 @@ pipeline {
 
         stage('Static Code Analysis') {
             steps {
-                dir(env.APP_NAME){
+                dir(env.WORKING_DIRECTORY){
                   sh 'npm run lint'
                 }
             }
@@ -47,7 +51,7 @@ pipeline {
 
         stage('Compile & Build Dist') {
             steps {
-                dir(env.APP_NAME){
+                dir(env.WORKING_DIRECTORY){
                   sh 'npm run build'
                 }
             }

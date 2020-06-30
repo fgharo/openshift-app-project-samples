@@ -6,10 +6,14 @@ pipeline {
 
     agent any
 
+    environment {
+      WORKING_DIRECTORY = 'hello-world'
+    }
+
     stages {
         stage('Loading Environment Vars'){
           steps{
-            dir('hello-world'){
+            dir(env.WORKING_DIRECTORY){
               load "Jenkinsfile-properties.groovy"
             }
           }
@@ -24,7 +28,7 @@ pipeline {
             */
             sh '''
                 oc project ${DEV_PROJECT}
-                oc start-build hello-world-ci-pipeline --wait=true
+                oc start-build ${OC_JENKINS_CI_PIPELINE} --wait=true
                '''
           }
         }
