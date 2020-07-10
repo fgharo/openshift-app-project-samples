@@ -90,3 +90,60 @@ Expose the service created. `oc expose svc/tictactoe --port=8080` note this didn
 Promote tag to stage environment `oc tag dev/tictactoe:latest stage/tictactoe:stage`.
 Create application in stage environment `oc new-app tictactoe:stage -n stage`.
 Expose the service created. `oc expose svc/tictactoe --port=8080 -n stage`.
+
+
+
+
+
+
+
+## CI/CD Jenkins Monolithic pipeline with Openshift (One time setup)
+### Prereqs
+0. Make sure application has a containerization strategy. For this Angular app we have placed a Dockerfile
+to create the container image with our application code. To repeat/automate a Jenkinsfile (One that is simple
+and easy to read) make sure the Openshift resource objects are already out in the appropriate openshift namespaces
+personal-dev and personal-stage by following the instructions for 'Openshift application binary build/deployment' section
+above.
+
+1. Make sure Jenkins instance is setup in openshift:
+```
+oc new-project jenkins
+oc new-app jenkins-persistent -p MEMORY_LIMIT=2Gi # Might want jenkins-ephemeral if you are just testing this out.
+```
+
+2. Make sure there is a Jenkins agent that we can use that has the build tools to build this project. After running below command you should
+see some output that contains the registry we will need to put in the Container Template with name nodejs (One of the Kubernetes Pod template
+that is preconfigured with openshift jenkins-persistent template from above) in Jenkins configuration. Make sure to add this registry uri
+by going to 'Jenkins > Manage Jenkins > Configure System > Scroll down to Images section on the webpage > Kubernetes Pod Template with name of
+nodejs > Edit Docker image section under jnlp Container Template'.
+```
+oc import-image quay.io/openshift/origin-jenkins-agent-nodejs:4.7.0 --confirm --from quay.io/openshift/origin-jenkins-agent-nodejs -n jenkins
+...
+... image-registry.openshift-image-registry.svc:5000/jenkins/origin-jenkins-agent-nodejs:4.7.0
+...
+```
+
+3. If we want to kickoff pipeline from openshift and have Jenkins know about it make sure that the BuildConfig's are synced between Jenkins and
+Openshift by putting openshift application namespace/project name in 'Jenkins > Manage Jenkins > Configure System' under
+OpenShift Jenkins Sync option in the Namespace field. For example, with this project I would append ' dev stage' to that field.
+
+4. Jenkins service account (made when Jenkins was first created) must have edit role to those projects:
+
+`oc policy add-role-to-user edit system:serviceaccount:jenkins:jenkins -n dev`
+
+`oc policy add-role-to-user edit system:serviceaccount:jenkins:jenkins -n stage`
+
+5. Now create a pipeline BuildConfig via oc:
+```
+oc new-build https://github.com/fgharo/openshift-app-project-samples.git#react-jenkins-monolithic-cicd-pipeline \
+--context-dir=tictactoe  \
+--strategy="pipeline" \
+--name=tictactoe-pipeline \
+-n dev
+```
+### Repeatable Jenkins CI/CD pipeline.
+
+Step number 5. above already started a new build. From here on out we have a repeatable/semi-automated process in the Jenkinsfile script with the push
+of a button or a single command. So just run the below command or trigger the job from within Jenkins. This will build code, build container image, deploy pod/container to
+personal-dev, promote to personal-stage, and finally deploy to personal-stage.
+`oc start-build tictactoe-pipeline`
