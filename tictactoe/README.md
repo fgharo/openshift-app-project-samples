@@ -66,3 +66,27 @@ This section has moved here: https://facebook.github.io/create-react-app/docs/de
 ### `npm run build` fails to minify
 
 This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+
+
+
+## Containerizing application to run with either docker, podman, or manually on openshift.
+
+### Prereqs
+Add Dockerfile to create container image on builder image nginxinc/nginx-unprivileged:1.18-alpine. Titled Dockerfile in this folder.
+Install dependencies `npm install`
+Create spa content to serve on nginx server. Should have code in build/ via command `npm run build`
+
+
+### Podman Local Container Engine
+Build actual container image. `podman build -t tictactoe .`
+Run actual container and forward requests to 8080 which is port nginx is listening on. `podman run --name tictactoe -p 8080:8080 -d tictactoe`
+
+### Openshift application binary build/deployment
+Be in project you want to create app resources in. `oc project dev`
+Build actual generic BuildConfig ocp object to work with binary build. `oc new-build --name=tictactoe --binary=true`
+Start execution of BuildConfig object with this directory (which uses Dockerfile build container image for binary input) to produce imagestream for our app. `oc start-build bc/tictactoe --from-dir="." --wait=true --follow=true`
+Create/Start a DeploymentConfig ocp object with the previous image stream as the input/container image. `oc new-app tictactoe:latest`
+Expose the service created. `oc expose svc/tictactoe --port=8080` note this didn't work (note this might not work depending on oc client version)
+Promote tag to stage environment `oc tag dev/tictactoe:latest stage/tictactoe:stage`.
+Create application in stage environment `oc new-app tictactoe:stage -n stage`.
+Expose the service created. `oc expose svc/tictactoe --port=8080 -n stage`.
