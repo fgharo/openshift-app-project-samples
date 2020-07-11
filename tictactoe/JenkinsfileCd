@@ -4,11 +4,7 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
     }
 
-    agent {
-      node {
-          		label 'any'
-    	}
-    }
+    agent any
 
     environment {
         WORKING_DIRECTORY = 'tictactoe'
