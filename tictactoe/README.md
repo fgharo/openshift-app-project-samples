@@ -97,7 +97,7 @@ Expose the service created. `oc expose svc/tictactoe --port=8080 -n stage`.
 
 
 
-## CI/CD Jenkins Monolithic pipeline with Openshift (One time setup)
+## CI/CD Jenkins Modular pipelines with Openshift (One time setup)
 ### Prereqs
 0. Make sure application has a containerization strategy. For this Angular app we have placed a Dockerfile
 to create the container image with our application code. To repeat/automate a Jenkinsfile (One that is simple
@@ -133,17 +133,29 @@ OpenShift Jenkins Sync option in the Namespace field. For example, with this pro
 
 `oc policy add-role-to-user edit system:serviceaccount:jenkins:jenkins -n stage`
 
-5. Now create a pipeline BuildConfig via oc:
-```
-oc new-build https://github.com/fgharo/openshift-app-project-samples.git#react-jenkins-monolithic-cicd-pipeline \
---context-dir=tictactoe  \
---strategy="pipeline" \
---name=tictactoe-pipeline \
--n dev
-```
-### Repeatable Jenkins CI/CD pipeline.
 
-Step number 5. above already started a new build. From here on out we have a repeatable/semi-automated process in the Jenkinsfile script with the push
+
+### Repeatable Jenkins CI pipeline.
+0. `oc project dev`
+1. `oc new-build https://github.com/fgharo/openshift-app-project-samples.git#react-jenkins-modular-ci-pipeline-and-cd-pipeline --context-dir=tictactoe  --strategy="pipeline" --name=tictactoe-ci-pipeline`
+2. Stop build to edit it `oc cancel-build bc/tictactoe-ci-pipeline`.
+3. Edit file path in BuildConfig `oc edit bc/tictactoe-ci-pipeline`
+4. Replace Jenkinsfile with JenkinsfileCi.
+
+Step number 1. above already started a new build. From here on out we have a repeatable/semi-automated process in the Jenkinsfile script with the push
 of a button or a single command. So just run the below command or trigger the job from within Jenkins. This will build code, build container image, deploy pod/container to
 personal-dev, promote to personal-stage, and finally deploy to personal-stage.
-`oc start-build tictactoe-pipeline`
+`oc start-build tictactoe-ci-pipeline`
+
+
+### Repeatable Jenkins CD pipelines
+0. `oc project dev`
+1. `oc new-build https://github.com/fgharo/openshift-app-project-samples.git#react-jenkins-modular-ci-pipeline-and-cd-pipeline --context-dir=tictactoe  --strategy="pipeline" --name=tictactoe-cd-pipeline`
+2. Stop build to edit it `oc cancel-build bc/tictactoe-cd-pipeline`.
+3. Edit file path in BuildConfig `oc edit bc/tictactoe-cd-pipeline`
+4. Replace Jenkinsfile with JenkinsfileCd.
+
+Step number 1. above already started a new build. From here on out we have a repeatable/semi-automated process in the Jenkinsfile script with the push
+of a button or a single command. So just run the below command or trigger the job from within Jenkins. This will build code, build container image, deploy pod/container to
+personal-dev, promote to personal-stage, and finally deploy to personal-stage.
+`oc start-build tictactoe-cd-pipeline`

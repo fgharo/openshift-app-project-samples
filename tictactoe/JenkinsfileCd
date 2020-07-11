@@ -1,0 +1,112 @@
+pipeline {
+    options {
+        // set a timeout of 60 minutes for this pipeline
+        timeout(time: 60, unit: 'MINUTES')
+    }
+
+    agent {
+      node {
+          		label 'any'
+    	}
+    }
+
+    environment {
+        WORKING_DIRECTORY = 'tictactoe'
+    }
+
+    stages {
+        stage('Loading Environment Vars'){
+          steps{
+            dir(env.WORKING_DIRECTORY){
+              load "Jenkinsfile-properties.groovy"
+            }
+          }
+
+        }
+
+        stage('Running CI'){
+          steps {
+            /*
+            Triggering pipelines from other pipelines is not supported in Openshift Jenkins v 2.204.2
+            build '/personal-dev/personal-dev-hello-world-ci-pipeline'
+            Workaround: Use the oc to follow a manual trigger of the ci pipeline.
+            */
+            sh '''
+                oc project ${DEV_PROJECT}
+                oc start-build ${OC_JENKINS_CI_PIPELINE} --wait=true
+               '''
+          }
+        }
+
+        stage('Launch app in DEV') {
+          steps {
+              sh '''
+                  oc project ${DEV_PROJECT}
+                  oc set triggers dc/${APP_NAME} --manual
+    			        oc rollout latest dc/${APP_NAME}
+                 '''
+          }
+        }
+
+        stage('Wait for deployment in DEV env') {
+    	    steps {
+    		      waitOnRolloutCompletion(env.DEV_PROJECT, env.APP_NAME)
+
+              sh '''
+                      echo "Deployment to Dev env is complete. Access the API endpoint at the URL"
+                      oc get route ${APP_NAME} -n ${DEV_PROJECT} -o jsonpath='{ .spec.host }'
+                 '''
+    	    }
+      	}
+
+        stage('Promote to Staging Env') {
+          steps {
+              timeout(time: 60, unit: 'MINUTES') {
+                  input message: "Promote to Staging?"
+              }
+              sh '''
+                  oc project ${STAGE_PROJECT}
+              	  oc set triggers dc/${APP_NAME} --manual
+                  oc tag ${DEV_PROJECT}/${APP_NAME}:latest ${STAGE_PROJECT}/${APP_NAME}:stage
+                 '''
+          }
+        }
+
+        stage('Deploy to Staging Env') {
+          steps {
+              echo '### Cleaning existing resources in Staging ###'
+              sh '''
+                      oc rollout latest dc/${APP_NAME} -n ${STAGE_PROJECT}
+                      sleep 5
+                 '''
+	        }
+        }
+
+        stage('Wait for deployment in Staging') {
+          steps {
+        		waitOnRolloutCompletion(env.STAGE_PROJECT, env.APP_NAME)
+
+            sh '''
+                    echo "Deployment to Staging env is complete. Access the API endpoint at the URL"
+                    oc get route ${APP_NAME} -n ${STAGE_PROJECT} -o jsonpath='{ .spec.host }'
+               '''
+          }
+        }
+    }
+}
+
+def waitOnRolloutCompletion(project, app){
+	 def dc_version = sh(returnStdout: true, script: "oc get dc ${app} --template={{.status.latestVersion}} -n ${project}").trim()
+	 def replication_controller = app + "-" + dc_version
+
+   def currentNumOfReplicas = sh(returnStdout: true, script: "oc get rc ${replication_controller} --template={{.status.readyReplicas}} -n ${project}").trim()
+	 def expectedNumOfReplicas = sh(returnStdout: true, script: "oc get rc ${replication_controller} --template={{.status.replicas}} -n ${project}").trim()
+
+	 echo "Waiting for ReplicationController ${replication_controller} to replicate expected number of replicas."
+	 while (currentNumOfReplicas != expectedNumOfReplicas){
+            sleep 5
+            currentNumOfReplicas = sh(returnStdout: true, script: "oc get rc ${replication_controller} --template={{.status.readyReplicas}} -n ${project}").trim()
+	          expectedNumOfReplicas = sh(returnStdout: true, script: "oc get rc ${replication_controller} --template={{.status.replicas}} -n ${project}").trim()
+	          echo "${currentNumOfReplicas} vs ${expectedNumOfReplicas}"
+	 }
+}
