@@ -1,0 +1,5 @@
+env.DEV_PROJECT="dev"
+env.STAGE_PROJECT="stage"
+env.APP_NAME="tictactoe"
+env.PATH_TO_BINARY_DIR="./tictactoe"
+env.OC_JENKINS_CI_PIPELINE="tictactoe-ci-pipeline"
