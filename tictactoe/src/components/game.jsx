@@ -116,7 +116,7 @@ export default class Game extends React.Component {
     return (
       <div>
         <div>
-          <h1>TicTacToe</h1>
+          <h1>Let's Play Tic-Tac-Toe!!!</h1>
         </div>
         <div className="game">
           <div className="game-board">
