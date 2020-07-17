@@ -11,8 +11,7 @@ pipeline {
     }
 
     environment {
-        DEV_PROJECT = "dev"
-        STAGE_PROJECT = "stage"
+        DEV_PROJECT = "fharo-practice"
 
         APP_NAME = "tictactoe"
         PATH_TO_BINARY_DIR = "./${APP_NAME}"
@@ -73,40 +72,6 @@ pipeline {
                    '''
       	    }
       	}
-
-        stage('Promote to Staging Env') {
-            steps {
-                timeout(time: 60, unit: 'MINUTES') {
-                    input message: "Promote to Staging?"
-                }
-                sh '''
-                    oc project ${STAGE_PROJECT}
-                	  oc set triggers dc/${APP_NAME} --manual
-                    oc tag ${DEV_PROJECT}/${APP_NAME}:latest ${STAGE_PROJECT}/${APP_NAME}:stage
-                   '''
-            }
-        }
-
-        stage('Deploy to Staging Env') {
-            steps {
-                echo '### Cleaning existing resources in Staging ###'
-                sh '''
-                        oc rollout latest dc/${APP_NAME} -n ${STAGE_PROJECT}
-                        sleep 5
-                   '''
-	    }
-        }
-
-        stage('Wait for deployment in Staging') {
-            steps {
-          		waitOnRolloutCompletion(env.STAGE_PROJECT, env.APP_NAME)
-
-              sh '''
-                      echo "Deployment to Staging env is complete. Access the API endpoint at the URL"
-                      oc get route ${APP_NAME} -n ${STAGE_PROJECT} -o jsonpath='{ .spec.host }'
-                 '''
-            }
-        }
     }
 }
 
